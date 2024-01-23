@@ -2,8 +2,17 @@
 @namespace Oqtane.Pages
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @model Oqtane.Pages.HostModel
+
+@using Clicksoft.KeenThemes
+@using Clicksoft.KeenThemes.Libs
+@inject IBootstrapBase BootstrapBase
+@inject IKTTheme KTTheme
+
+@{
+    BootstrapBase.Init(KTTheme);
+}
 <!DOCTYPE html>
-<html lang="@Model.Language">
+<!html lang="@Model.Language" @Html.Raw(KTTheme.PrintHtmlAttributes("html"))>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,11 +30,11 @@
     <component type="typeof(Oqtane.Head)" render-mode="@((RenderMode)Enum.Parse(typeof(RenderMode), Model.RenderMode, true))" />
     @Html.Raw(Model.HeadResources)
 </head>
-<body>
+<!body @Html.Raw(KTTheme.PrintHtmlAttributes("body")) class="@KTTheme.PrintHtmlClasses("body")">
 	@if (string.IsNullOrEmpty(Model.Message))
 	{
 		@(Html.AntiForgeryToken())
-
+        <partial name="_PageLoader.cshtml" />
 		<component type="typeof(Oqtane.App)" render-mode="@((RenderMode)Enum.Parse(typeof(RenderMode), Model.RenderMode, true))" param-AntiForgeryToken="@Model.AntiForgeryToken" param-Runtime="@Model.Runtime" param-RenderMode="@Model.RenderMode.ToString()" param-VisitorId="@Model.VisitorId" param-RemoteIPAddress="@Model.RemoteIPAddress" param-AuthorizationToken="@Model.AuthorizationToken" />
 
 		<div id="blazor-error-ui">
@@ -63,5 +72,5 @@
 	{
 		<div class="app-alert">@Model.Message</div>
 	}
-</body>
-</html>
+</!body>
+</!html>
