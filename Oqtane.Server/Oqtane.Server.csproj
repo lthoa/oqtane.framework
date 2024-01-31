@@ -49,6 +49,7 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.7" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\clicksoft\Modules\Base\KeenThemes\KeenThemes.csproj" />
     <ProjectReference Include="..\Oqtane.Client\Oqtane.Client.csproj" />
     <ProjectReference Include="..\Oqtane.Shared\Oqtane.Shared.csproj" />
   </ItemGroup>
@@ -77,10 +78,5 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="bin\Debug\net8.0\Clicksoft.KeenThemes.Oqtane.dll" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Clicksoft.KeenThemes.Oqtane">
-      <HintPath>bin\Debug\net8.0\Clicksoft.KeenThemes.Oqtane.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>
