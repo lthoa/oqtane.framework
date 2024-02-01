@@ -68,18 +68,6 @@ namespace Oqtane
             services.AddOptions<List<Database>>().Bind(Configuration.GetSection(SettingKeys.AvailableDatabasesSection));
             services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(10)); // increase from default of 5 seconds
 
-            //services.AddServerSideBlazor()
-            //    .AddCircuitOptions(options =>
-            //    {
-            //        if (_env.IsDevelopment())
-            //        {
-            //            options.DetailedErrors = true;
-            //        }
-            //    })
-            //    .AddHubOptions(options => {
-            //        options.MaximumReceiveMessageSize = null; // no limit (for large amnounts of data ie. textarea components)
-            //    });
-
             // setup HttpClient for server side in a client side compatible fashion ( with auth cookie )
             services.AddHttpClients();
 
@@ -140,6 +128,7 @@ namespace Oqtane
                 options.AddPolicy(Constants.MauiCorsPolicy,
                     policy =>
                     {
+                        // allow .NET MAUI client cross origin calls
                         policy.WithOrigins("https://0.0.0.0", "http://0.0.0.0", "app://0.0.0.0")
                             .AllowAnyHeader().AllowCredentials();
                     });
@@ -153,7 +142,16 @@ namespace Oqtane
             .ConfigureOqtaneMvc(); // any additional configuration from IStartup classes
 
             services.AddRazorComponents()
-               .AddInteractiveServerComponents()
+               .AddInteractiveServerComponents(options =>
+               {
+                   if (_env.IsDevelopment())
+                   {
+                       options.DetailedErrors = false;
+                   }
+               }).AddHubOptions(options =>
+               {
+                   options.MaximumReceiveMessageSize = null; // no limit (for large amnounts of data ie. textarea components)
+               })
                .AddInteractiveWebAssemblyComponents();
 
             services.AddSwaggerGen(options =>
@@ -208,14 +206,6 @@ namespace Oqtane
                 app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/" + Constants.Version + "/swagger.json", Constants.PackageId + " " + Constants.Version); });
             }
 
-            //app.UseEndpoints(endpoints =>
-            //{
-            //    endpoints.MapBlazorHub();
-            //    endpoints.MapControllers();
-            //    endpoints.MapFallbackToPage("/_Host");
-            //});
-
-            app.UseAntiforgery();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
@@ -225,10 +215,10 @@ namespace Oqtane
             {
                 endpoints.MapRazorComponents<App>()
                     .AddInteractiveServerRenderMode()
-                    .AddInteractiveWebAssemblyRenderMode()
-                    .AddAdditionalAssemblies(typeof(SiteRouter).Assembly);
+                    .AddInteractiveWebAssemblyRenderMode();
             });
 
+            // simulate the fallback routing approach of traditional Blazor - allowing the custom SiteRouter to handle all routing concerns
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapFallback();
