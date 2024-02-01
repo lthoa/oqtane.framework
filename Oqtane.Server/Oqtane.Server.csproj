@@ -49,7 +49,6 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.7" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\clicksoft\Modules\Base\KeenThemes\KeenThemes.csproj" />
     <ProjectReference Include="..\Oqtane.Client\Oqtane.Client.csproj" />
     <ProjectReference Include="..\Oqtane.Shared\Oqtane.Shared.csproj" />
   </ItemGroup>
@@ -72,11 +71,5 @@
   <ItemGroup>
     <!-- extends watching group to include *.dll files and exclude the ones cause an infinite loop -->
     <Watch Include="**\*.dll" Exclude="**\Microsoft.EntityFrameworkCore.*.dll;**\Oqtane.Database.*.dll;" />
-  </ItemGroup>
-  <ItemGroup>
-    <Watch Remove="bin\Debug\net8.0\Clicksoft.KeenThemes.Oqtane.dll" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="bin\Debug\net8.0\Clicksoft.KeenThemes.Oqtane.dll" />
   </ItemGroup>
 </Project>
