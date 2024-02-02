@@ -30,10 +30,10 @@
     private string _error = "";    
 
     [Parameter]
-    public string Runtime { get; set; }
+    public string RenderMode { get; set; }
 
     [Parameter]
-    public string RenderMode { get; set; }
+    public string Runtime { get; set; }
 
     [Parameter]
     public int VisitorId { get; set; }
@@ -55,7 +55,7 @@
         {
             if (PageState != null)
             {
-                builder.OpenComponent(0, Type.GetType(Constants.PageComponent));
+                builder.OpenComponent(0, typeof(ThemeBuilder));
                 builder.CloseComponent();
             }
         };
@@ -291,8 +291,8 @@
                         Action = action,
                         EditMode = editmode,
                         LastSyncDate = lastsyncdate,
-                        Runtime = (Shared.Runtime)Enum.Parse(typeof(Shared.Runtime), Runtime),
                         RenderMode = RenderMode,
+                        Runtime = (Shared.Runtime)Enum.Parse(typeof(Shared.Runtime), Runtime),
 						VisitorId = VisitorId,
 						RemoteIPAddress = SiteState.RemoteIPAddress,
 						ReturnUrl = returnurl,
@@ -431,7 +431,7 @@
             {
                 var typename = Constants.ErrorModule;
 
-                if (module.ModuleDefinition != null && (module.ModuleDefinition.Runtimes == "" || module.ModuleDefinition.Runtimes.Contains(RenderMode)))
+                if (module.ModuleDefinition != null && (module.ModuleDefinition.Runtimes == "" || module.ModuleDefinition.Runtimes.Contains(Runtime)))
                 {
                     typename = module.ModuleDefinition.ControlTypeTemplate;
 
@@ -478,6 +478,8 @@
                 {
                     // retrieve module component resources
                     var moduleobject = Activator.CreateInstance(moduletype) as IModuleControl;
+                    module.RenderMode = moduleobject.RenderMode;
+
                     page.Resources = ManagePageResources(page.Resources, moduleobject.Resources, ResourceLevel.Module, alias, "Modules",  moduletype.Namespace);
                     if (action.ToLower() == "settings" && module.ModuleDefinition != null)
                     {
