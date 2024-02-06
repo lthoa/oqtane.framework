@@ -71,6 +71,7 @@
 
     @if (string.IsNullOrEmpty(_message))
     {
+        @((MarkupString)KTTheme.DefaultLoader())
         @if (_renderMode == RenderModes.Static)
         {
             <Routes AntiForgeryToken="@_antiForgeryToken" RenderMode="@_renderMode" Runtime="@_runtime" VisitorId="@_visitorId" RemoteIPAddress="@_remoteIPAddress" AuthorizationToken="@_authorizationToken" />
