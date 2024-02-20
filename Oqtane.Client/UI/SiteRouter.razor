@@ -35,9 +35,6 @@
     [Parameter]
     public string Runtime { get; set; }
 
-    [Parameter]
-    public int VisitorId { get; set; }
-
     [CascadingParameter]
     PageState PageState { get; set; }
 
@@ -53,7 +50,7 @@
 
         DynamicComponent = builder =>
         {
-            if (PageState != null)
+            if (PageState != null && !PageState.Refresh)
             {
                 builder.OpenComponent(0, typeof(ThemeBuilder));
                 builder.CloseComponent();
@@ -68,7 +65,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (PageState == null)
+        if (PageState == null || PageState.Refresh)
         {
             await Refresh();
         }
@@ -100,6 +97,7 @@
         var editmode = false;
         var refresh = false;
         var lastsyncdate = DateTime.MinValue;
+        var visitorId = -1;
         _error = "";
 
         Route route = new Route(_absoluteUri, SiteState.Alias.Path);
@@ -148,6 +146,7 @@
         {
             editmode = PageState.EditMode;
             lastsyncdate = PageState.LastSyncDate;
+            visitorId = PageState.VisitorId;
         }
         if (PageState?.Page.Path != route.PagePath)
         {
@@ -159,7 +158,7 @@
         }
 
         // get user
-        if (PageState == null || refresh || PageState.Alias.SiteId != SiteState.Alias.SiteId)
+        if (PageState == null || PageState.Refresh || refresh || PageState.Alias.SiteId != SiteState.Alias.SiteId)
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             // verify user is authenticated for current site
@@ -220,7 +219,7 @@
 
         if (site != null)
         {
-            if (Runtime == "Hybrid" && !site.Hybrid)
+            if (Runtime == Runtimes.Hybrid && !site.Hybrid)
             {
                 _error = "Hybrid Integration Is Not Enabled For This Site";
                 return;
@@ -293,11 +292,12 @@
                         LastSyncDate = lastsyncdate,
                         RenderMode = RenderMode,
                         Runtime = (Shared.Runtime)Enum.Parse(typeof(Shared.Runtime), Runtime),
-						VisitorId = VisitorId,
+						VisitorId = visitorId,
 						RemoteIPAddress = SiteState.RemoteIPAddress,
 						ReturnUrl = returnurl,
                         IsInternalNavigation = _isInternalNavigation,
-                        RenderId = Guid.NewGuid()
+                        RenderId = Guid.NewGuid(),
+                        Refresh = false
                     };
 
                     OnStateChange?.Invoke(_pagestate);
@@ -324,7 +324,7 @@
                 }
                 else // not mapped
                 {
-                    if (user == null && Utilities.IsPageModuleVisible(page.EffectiveDate, page.ExpiryDate))
+                    if (user == null)
                     {
                         // redirect to login page if user not logged in as they may need to be authenticated
                         NavigationManager.NavigateTo(Utilities.NavigateUrl(SiteState.Alias.Path, "login", "?returnurl=" + WebUtility.UrlEncode(route.PathAndQuery)));

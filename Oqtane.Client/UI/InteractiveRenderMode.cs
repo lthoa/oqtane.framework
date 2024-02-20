@@ -4,20 +4,20 @@ using Oqtane.Shared;
 
 namespace Oqtane.UI
 {
-    public static class RenderMode
+    public static class InteractiveRenderMode
     {
         public static IComponentRenderMode GetInteractiveRenderMode(string runtime, bool prerender)
         {
             switch (runtime)
             {
                 case Runtimes.Server:
-                    return new InteractiveServerRenderMode(prerender);
+                    return new InteractiveServerRenderMode(prerender: prerender);
                 case Runtimes.WebAssembly:
-                    return new InteractiveWebAssemblyRenderMode(prerender);
+                    return new InteractiveWebAssemblyRenderMode(prerender: prerender);
                 case Runtimes.Auto:
-                    return new InteractiveAutoRenderMode(prerender);
+                    return new InteractiveAutoRenderMode(prerender: prerender);
             }
-            return null;
+            return new InteractiveServerRenderMode(prerender: prerender);
         }
     }
 }

@@ -277,7 +277,7 @@
     <value>Hosting Model</value>
   </data>
   <data name="Prerender.HelpText" xml:space="preserve">
-    <value>Specifies if the site supports prerendering</value>
+    <value>Specifies if interactive modules should prerender their output</value>
   </data>
   <data name="Prerender.Text" xml:space="preserve">
     <value>Prerender? </value>
@@ -424,7 +424,7 @@
     <value>Hybrid Enabled?</value>
   </data>
   <data name="Runtime.HelpText" xml:space="preserve">
-    <value>The interactive render mode for the site</value>
+    <value>The interactive render mode for modules</value>
   </data>
   <data name="Runtime.Text" xml:space="preserve">
     <value>Interactivity:</value>

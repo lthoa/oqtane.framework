@@ -37,7 +37,7 @@ namespace Oqtane.Modules
         protected Module ModuleState { get; set; }
 
         [Parameter]
-        public ModuleInstance ModuleInstance { get; set; }
+        public RenderModeBoundary RenderModeBoundary { get; set; }
 
         // optional interface properties
         public virtual SecurityAccessLevel SecurityAccessLevel { get { return SecurityAccessLevel.View; } set { } } // default security
@@ -89,7 +89,7 @@ namespace Oqtane.Modules
                         resources = Resources.Where(item => item.ResourceType == ResourceType.Script).ToList();
                     }
                 }
-                if (resources != null &&resources.Any())
+                if (resources != null && resources.Any())
                 {
                     var interop = new Interop(JSRuntime);
                     var scripts = new List<object>();
@@ -274,22 +274,22 @@ namespace Oqtane.Modules
         public void AddModuleMessage(string message, MessageType type, string position)
         {
             ClearModuleMessage();
-            ModuleInstance.AddModuleMessage(message, type, position);
+            RenderModeBoundary.AddModuleMessage(message, type, position);
         }
 
         public void ClearModuleMessage()
         {
-            ModuleInstance.AddModuleMessage("", MessageType.Undefined);
+            RenderModeBoundary.AddModuleMessage("", MessageType.Undefined);
         }
 
         public void ShowProgressIndicator()
         {
-            ModuleInstance.ShowProgressIndicator();
+            RenderModeBoundary.ShowProgressIndicator();
         }
 
         public void HideProgressIndicator()
         {
-            ModuleInstance.HideProgressIndicator();
+            RenderModeBoundary.HideProgressIndicator();
         }
 
         public void SetModuleTitle(string title)
@@ -489,5 +489,8 @@ namespace Oqtane.Modules
         {
             return Utilities.FileUrl(PageState.Alias, fileid, asAttachment);
         }
+
+        // Referencing ModuleInstance methods from ModuleBase is deprecated. Use the ModuleBase methods instead
+        public ModuleInstance ModuleInstance { get { return new ModuleInstance(); } }
     }
 }
