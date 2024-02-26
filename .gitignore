@@ -30,3 +30,4 @@ Oqtane.Server/wwwroot/Themes
 !Oqtane.Server/wwwroot/Themes/Oqtane.Themes.*
 !Oqtane.Server/wwwroot/Themes/Templates
 /Oqtane.Server/Puppeteer/Chrome/Win64-121.0.6167.85/chrome-win64
+/Oqtane.Server/appsettings.json
