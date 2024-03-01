@@ -37,8 +37,6 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <base href="/" />
-        <script src="js/app.js"></script>
-        <script src="js/loadjs.min.js"></script>
         <link rel="stylesheet" href="css/app.css" />
         @if (!string.IsNullOrEmpty(_PWAScript))
         {
@@ -62,13 +60,15 @@
         {
             @if (_renderMode == RenderModes.Static)
             {
-                <Routes PageState="@_pageState" RenderMode="@_renderMode" Runtime="@_runtime" AntiForgeryToken="@_antiForgeryToken" AuthorizationToken="@_authorizationToken" />
+                <Routes PageState="@_pageState" RenderMode="@_renderMode" Runtime="@_runtime" AntiForgeryToken="@_antiForgeryToken" AuthorizationToken="@_authorizationToken" Platform="@_platform" />
             }
             else
             {
-                <Routes PageState="@_pageState" RenderMode="@_renderMode" Runtime="@_runtime" AntiForgeryToken="@_antiForgeryToken" AuthorizationToken="@_authorizationToken" @rendermode="InteractiveRenderMode.GetInteractiveRenderMode(_runtime, _prerender)" />
+                <Routes PageState="@_pageState" RenderMode="@_renderMode" Runtime="@_runtime" AntiForgeryToken="@_antiForgeryToken" AuthorizationToken="@_authorizationToken" Platform="@_platform" @rendermode="InteractiveRenderMode.GetInteractiveRenderMode(_runtime, _prerender)" />
             }
 
+            <script src="js/app.js"></script>
+            <script src="js/loadjs.min.js"></script>
             <script src="js/interop.js"></script>
             <script src="_framework/blazor.web.js"></script>
 
@@ -96,10 +96,11 @@
     private string _runtime = Runtimes.Server;
     private bool _prerender = true;
     private int _visitorId = -1;
+    private string _antiForgeryToken = "";
     private string _remoteIPAddress = "";
+    private string _platform = "";
     private string _authorizationToken = "";
     private string _language = "en";
-    private string _antiForgeryToken = "";
     private string _headResources = "";
     private string _bodyResources = "";
     private string _styleSheets = "";
@@ -116,6 +117,7 @@
     {
         _antiForgeryToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
         _remoteIPAddress = Context.Connection.RemoteIpAddress?.ToString() ?? "";
+        _platform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
 
         // if framework is installed
         if (ConfigManager.IsInstalled())
@@ -554,6 +556,12 @@
         {
             resources = AddResources(resources, theme.Resources, ResourceLevel.Page, alias, "Themes", Utilities.GetTypeName(theme.ThemeName));
         }
+        else
+        {
+            // fallback to default Oqtane theme
+            theme = site.Themes.FirstOrDefault(item => item.Themes.Any(item => item.TypeName == Constants.DefaultTheme));
+            resources = AddResources(resources, theme.Resources, ResourceLevel.Page, alias, "Themes", Utilities.GetTypeName(theme.ThemeName));
+        }
         var type = Type.GetType(themeType);
         if (type != null)
         {
@@ -592,7 +600,7 @@
                     var obj = Activator.CreateInstance(moduletype) as IModuleControl;
                     if (obj != null)
                     {
-                        resources = AddResources(resources, obj.Resources, ResourceLevel.Module, alias, "Modules", type.Namespace);
+                        resources = AddResources(resources, obj.Resources, ResourceLevel.Module, alias, "Modules", moduletype.Namespace);
                     }
                 }
             }
@@ -658,7 +666,7 @@
             {
                 count++;
                 string id = "id=\"app-stylesheet-" + ResourceLevel.Page.ToString().ToLower() + "-" + batch + "-" + count.ToString("00") + "\" ";
-                _styleSheets += "<link " + id + "rel=\"stylesheet\" href=\"" + resource.Url + "\"" + (!string.IsNullOrEmpty(resource.Integrity) ? " integrity=\"" + resource.Integrity + "\"" : "") + (!string.IsNullOrEmpty(resource.CrossOrigin) ? " crossorigin=\"" + resource.CrossOrigin + "\"" : "") + " type=\"text/css\"/>" + Environment.NewLine;
+                _styleSheets += "<link " + id + "rel=\"stylesheet\"" + (!string.IsNullOrEmpty(resource.Integrity) ? " integrity=\"" + resource.Integrity + "\"" : "") + (!string.IsNullOrEmpty(resource.CrossOrigin) ? " crossorigin=\"" + resource.CrossOrigin + "\"" : "") + " href=\"" + resource.Url + "\" type=\"text/css\"/>" + Environment.NewLine;
             }
         }
     }

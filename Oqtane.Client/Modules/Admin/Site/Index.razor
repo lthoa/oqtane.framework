@@ -98,9 +98,12 @@
                     <Label Class="col-sm-3" For="defaultContainer" HelpText="Select the default container for the site" ResourceKey="DefaultContainer">Default Container: </Label>
                     <div class="col-sm-9">
                         <select id="defaultContainer" class="form-select" @bind="@_containertype" required>
-                            @foreach (var container in _containers)
+                            @if (_containers != null)
                             {
-                                <option value="@container.TypeName">@container.Name</option>
+                                @foreach (var container in _containers)
+                                {
+                                    <option value="@container.TypeName">@container.Name</option>
+                                }
                             }
                         </select>
                     </div>
@@ -110,9 +113,12 @@
                     <div class="col-sm-9">
                         <select id="defaultAdminContainer" class="form-select" @bind="@_admincontainertype" required>
                             <option value="@Constants.DefaultAdminContainer">&lt;@Localizer["DefaultAdminContainer"]&gt;</option>
-                            @foreach (var container in _containers)
+                            @if (_containers != null)
                             {
-                                <option value="@container.TypeName">@container.Name</option>
+                                @foreach (var container in _containers)
+                                {
+                                    <option value="@container.TypeName">@container.Name</option>
+                                }
                             }
                         </select>
                     </div>
@@ -321,7 +327,7 @@
                         </div>
                     </div>
                     <div class="row mb-1 align-items-center">
-                        <Label Class="col-sm-3" For="runtime" HelpText="The interactive render mode for modules" ResourceKey="Runtime">Interactivity: </Label>
+                        <Label Class="col-sm-3" For="runtime" HelpText="The render mode for UI components which require interactivity" ResourceKey="Runtime">Interactivity: </Label>
                         <div class="col-sm-9">
                             <select id="runtime" class="form-select" @bind="@_runtime" required>
                                 <option value="@Runtimes.Server">@(SharedLocalizer["Runtime" + @Runtimes.Server])</option>
@@ -331,7 +337,7 @@
                         </div>
                     </div>
                     <div class="row mb-1 align-items-center">
-                        <Label Class="col-sm-3" For="prerender" HelpText="Specifies if interactive modules should prerender their output" ResourceKey="Prerender">Prerender? </Label>
+                        <Label Class="col-sm-3" For="prerender" HelpText="Specifies if interactive components should prerender their output" ResourceKey="Prerender">Prerender? </Label>
                         <div class="col-sm-9">
                             <select id="prerender" class="form-select" @bind="@_prerender" required>
                                 <option value="True">@SharedLocalizer["Yes"]</option>

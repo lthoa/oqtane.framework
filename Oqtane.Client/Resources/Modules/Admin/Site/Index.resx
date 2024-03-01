@@ -274,10 +274,10 @@
     <value>Select Theme</value>
   </data>
   <data name="Hosting.Heading" xml:space="preserve">
-    <value>Hosting Model</value>
+    <value>Blazor Settings</value>
   </data>
   <data name="Prerender.HelpText" xml:space="preserve">
-    <value>Specifies if interactive modules should prerender their output</value>
+    <value>Specifies if interactive components should prerender their output</value>
   </data>
   <data name="Prerender.Text" xml:space="preserve">
     <value>Prerender? </value>
@@ -325,7 +325,7 @@
     <value>Default Alias: </value>
   </data>
   <data name="Aliases.Heading" xml:space="preserve">
-    <value>Urls</value>
+    <value>Site Urls</value>
   </data>
   <data name="AliasName" xml:space="preserve">
     <value>Url</value>
@@ -424,7 +424,7 @@
     <value>Hybrid Enabled?</value>
   </data>
   <data name="Runtime.HelpText" xml:space="preserve">
-    <value>The interactive render mode for modules</value>
+    <value>The render mode for UI components which require interactivity</value>
   </data>
   <data name="Runtime.Text" xml:space="preserve">
     <value>Interactivity:</value>

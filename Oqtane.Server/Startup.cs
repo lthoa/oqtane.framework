@@ -20,6 +20,8 @@ using Microsoft.Extensions.Logging;
 using Oqtane.Components;
 using Oqtane.UI;
 using OqtaneSSR.Extensions;
+using Microsoft.AspNetCore.Components.Authorization;
+using Oqtane.Providers;
 
 namespace Oqtane
 {
@@ -108,6 +110,7 @@ namespace Oqtane
             services.ConfigureOqtaneIdentityOptions(Configuration);
 
             services.AddCascadingAuthenticationState();
+            services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
             services.AddAuthorization();
 
             services.AddAuthentication(options =>
@@ -230,7 +233,7 @@ namespace Oqtane
             });
 
             // create a global sync event to identify server application startup
-            sync.AddSyncEvent(-1, EntityNames.Host, -1, SyncEventActions.Reload);
+            sync.AddSyncEvent(-1, -1, EntityNames.Host, -1, SyncEventActions.Reload);
         }
     }
 }

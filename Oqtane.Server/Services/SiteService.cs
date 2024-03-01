@@ -55,33 +55,35 @@ namespace Oqtane.Services
             List<Site> sites = new List<Site>();
             if (_accessor.HttpContext.User.IsInRole(RoleNames.Host))
             {
-                sites = _sites.GetSites().OrderBy(item => item.Name).ToList();
+                sites = (await _sites.GetSitesAsync()).ToList();
             }
-            return await Task.Run(() => sites);
+            return sites;
         }
 
         public async Task<Site> GetSiteAsync(int siteId)
         {
-            Site site = null;
             if (!_accessor.HttpContext.User.Identity.IsAuthenticated)
             {
-                site = _cache.GetOrCreate($"site:{_accessor.HttpContext.GetAlias().SiteKey}", entry => 
+                return await _cache.GetOrCreateAsync($"site:{_accessor.HttpContext.GetAlias().SiteKey}", async entry =>
                 {
                     entry.SlidingExpiration = TimeSpan.FromMinutes(30);
-                    return GetSite(siteId);
-                });
+                    return await GetSite(siteId);
+                }, true);
             }
-            else
+            else // authenticated - cached per user
             {
-                site = GetSite(siteId);
+                return await _cache.GetOrCreateAsync($"site:{_accessor.HttpContext.GetAlias().SiteKey}:{_accessor.HttpContext.User.UserId}", async entry =>
+                {
+                    entry.SlidingExpiration = TimeSpan.FromMinutes(30);
+                    return await GetSite(siteId);
+                }, true);
             }
-            return await Task.Run(() => site);
         }
 
-        private Site GetSite(int siteid)
+        private async Task<Site> GetSite(int siteid)
         {
             var alias = _tenantManager.GetAlias();
-            var site = _sites.GetSite(siteid);
+            var site = await _sites.GetSiteAsync(siteid);
             if (site != null && site.SiteId == alias.SiteId)
             {
                 // site settings
@@ -180,16 +182,15 @@ namespace Oqtane.Services
         {
             if (_accessor.HttpContext.User.IsInRole(RoleNames.Host))
             {
-                var alias = _tenantManager.GetAlias();
-                site = _sites.AddSite(site);
-                _syncManager.AddSyncEvent(alias.TenantId, EntityNames.Site, site.SiteId, SyncEventActions.Create);
+                site = await _sites.AddSiteAsync(site);
+                _syncManager.AddSyncEvent(_tenantManager.GetAlias(), EntityNames.Site, site.SiteId, SyncEventActions.Create);
                 _logger.Log(site.SiteId, LogLevel.Information, this, LogFunction.Create, "Site Added {Site}", site);
             }
             else
             {
                 site = null;
             }
-            return await Task.Run(() => site);
+            return site;
         }
 
         public async Task<Site> UpdateSiteAsync(Site site)
@@ -197,17 +198,17 @@ namespace Oqtane.Services
             if (_accessor.HttpContext.User.IsInRole(RoleNames.Admin))
             {
                 var alias = _tenantManager.GetAlias();
-                var current = _sites.GetSite(site.SiteId, false);
+                var current = await _sites.GetSiteAsync(site.SiteId, false);
                 if (site.SiteId == alias.SiteId && site.TenantId == alias.TenantId && current != null)
                 {
-                    site = _sites.UpdateSite(site);
-                    _syncManager.AddSyncEvent(alias.TenantId, EntityNames.Site, site.SiteId, SyncEventActions.Update);
+                    site = await _sites.UpdateSiteAsync(site);
+                    _syncManager.AddSyncEvent(alias, EntityNames.Site, site.SiteId, SyncEventActions.Update);
                     string action = SyncEventActions.Refresh;
                     if (current.RenderMode != site.RenderMode || current.Runtime != site.Runtime)
                     {
                         action = SyncEventActions.Reload;
                     }
-                    _syncManager.AddSyncEvent(alias.TenantId, EntityNames.Site, site.SiteId, action);
+                    _syncManager.AddSyncEvent(alias, EntityNames.Site, site.SiteId, action);
                     _logger.Log(site.SiteId, LogLevel.Information, this, LogFunction.Update, "Site Updated {Site}", site);
                 }
                 else
@@ -220,7 +221,7 @@ namespace Oqtane.Services
             {
                 site = null;
             }
-            return await Task.Run(() => site);
+            return site;
         }
 
         public async Task DeleteSiteAsync(int siteId)
@@ -228,11 +229,11 @@ namespace Oqtane.Services
             if (_accessor.HttpContext.User.IsInRole(RoleNames.Host))
             {
                 var alias = _tenantManager.GetAlias();
-                var site = _sites.GetSite(siteId);
+                var site = await _sites.GetSiteAsync(siteId);
                 if (site != null && site.SiteId == alias.SiteId)
                 {
-                    _sites.DeleteSite(siteId);
-                    _syncManager.AddSyncEvent(alias.TenantId, EntityNames.Site, site.SiteId, SyncEventActions.Delete);
+                    await _sites.DeleteSiteAsync(siteId);
+                    _syncManager.AddSyncEvent(alias, EntityNames.Site, site.SiteId, SyncEventActions.Delete);
                     _logger.Log(siteId, LogLevel.Information, this, LogFunction.Delete, "Site Deleted {SiteId}", siteId);
                 }
                 else
@@ -240,7 +241,6 @@ namespace Oqtane.Services
                     _logger.Log(LogLevel.Error, this, LogFunction.Security, "Unauthorized Site Delete Attempt {SiteId}", siteId);
                 }
             }
-            await Task.CompletedTask;
         }
 
         private static List<Page> GetPagesHierarchy(List<Page> pages)
