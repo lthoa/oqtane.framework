@@ -75,7 +75,6 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddScoped<IThemeService, ThemeService>();
             services.AddScoped<IAliasService, AliasService>();
             services.AddScoped<ITenantService, TenantService>();
-            services.AddScoped<ISiteService, ServerSiteService>();
             services.AddScoped<IPageService, PageService>();
             services.AddScoped<IModuleService, ModuleService>();
             services.AddScoped<IPageModuleService, PageModuleService>();
@@ -110,6 +109,7 @@ namespace Microsoft.Extensions.DependencyInjection
         internal static IServiceCollection AddOqtaneTransientServices(this IServiceCollection services)
         {
             // repositories
+            services.AddTransient<ISiteService, ServerSiteService>();
             services.AddTransient<IModuleDefinitionRepository, ModuleDefinitionRepository>();
             services.AddTransient<IThemeRepository, ThemeRepository>();
             services.AddTransient<IAliasRepository, AliasRepository>();
@@ -292,7 +292,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 {
                     if (implementationType.AssemblyQualifiedName != null)
                     {
-                        var serviceType = Type.GetType(implementationType.AssemblyQualifiedName.Replace(implementationType.Name, $"I{implementationType.Name}"));
+                        var serviceType = Type.GetType(implementationType.AssemblyQualifiedName.Replace(implementationType.Name, $"I{implementationType.Name}")); var serviceName = implementationType.AssemblyQualifiedName.Replace(implementationType.Name, $"I{implementationType.Name}");
                         services.AddScoped(serviceType ?? implementationType, implementationType);
                     }
                 }
@@ -304,6 +304,14 @@ namespace Microsoft.Extensions.DependencyInjection
                     if (implementationType.AssemblyQualifiedName != null)
                     {
                         var serviceType = Type.GetType(implementationType.AssemblyQualifiedName.Replace(implementationType.Name, $"I{implementationType.Name}"));
+                        if (serviceType == null && implementationType.AssemblyQualifiedName.Contains("Services.Server"))
+                        {
+                            // module server services reference a common interface which is located in the client assembly
+                            var serviceName = implementationType.AssemblyQualifiedName
+                                // convert implementation type name to interface name and change Server assembly to Client
+                                .Replace(".Services.Server", ".Services.I").Replace(".Server,", ".Client,");
+                            serviceType = Type.GetType(serviceName);
+                        }
                         services.AddTransient(serviceType ?? implementationType, implementationType);
                     }
                 }
