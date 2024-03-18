@@ -21,7 +21,6 @@ using Microsoft.OpenApi.Models;
 using Oqtane.Infrastructure;
 using Oqtane.Infrastructure.Interfaces;
 using Oqtane.Managers;
-using Oqtane.Models;
 using Oqtane.Modules;
 using Oqtane.Repository;
 using Oqtane.Security;
@@ -45,7 +44,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             services.AddDbContext<MasterDBContext>(options => { }, ServiceLifetime.Transient);
             services.AddDbContext<TenantDBContext>(options => { }, ServiceLifetime.Transient);
-
+            services.AddDbContextFactory<TenantDBContext>(opt => { }, ServiceLifetime.Transient);
             return services;
         }
 
@@ -292,7 +291,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 {
                     if (implementationType.AssemblyQualifiedName != null)
                     {
-                        var serviceType = Type.GetType(implementationType.AssemblyQualifiedName.Replace(implementationType.Name, $"I{implementationType.Name}")); var serviceName = implementationType.AssemblyQualifiedName.Replace(implementationType.Name, $"I{implementationType.Name}");
+                        var serviceType = Type.GetType(implementationType.AssemblyQualifiedName.Replace(implementationType.Name, $"I{implementationType.Name}"));
                         services.AddScoped(serviceType ?? implementationType, implementationType);
                     }
                 }
@@ -304,14 +303,6 @@ namespace Microsoft.Extensions.DependencyInjection
                     if (implementationType.AssemblyQualifiedName != null)
                     {
                         var serviceType = Type.GetType(implementationType.AssemblyQualifiedName.Replace(implementationType.Name, $"I{implementationType.Name}"));
-                        if (serviceType == null && implementationType.AssemblyQualifiedName.Contains("Services.Server"))
-                        {
-                            // module server services reference a common interface which is located in the client assembly
-                            var serviceName = implementationType.AssemblyQualifiedName
-                                // convert implementation type name to interface name and change Server assembly to Client
-                                .Replace(".Services.Server", ".Services.I").Replace(".Server,", ".Client,");
-                            serviceType = Type.GetType(serviceName);
-                        }
                         services.AddTransient(serviceType ?? implementationType, implementationType);
                     }
                 }
