@@ -72,4 +72,9 @@
     <!-- extends watching group to include *.dll files and exclude the ones cause an infinite loop -->
     <Watch Include="**\*.dll" Exclude="**\Microsoft.EntityFrameworkCore.*.dll;**\Oqtane.Database.*.dll;" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Clicksoft.KeenThemes.Oqtane">
+      <HintPath>bin\Debug\net8.0\Clicksoft.KeenThemes.Oqtane.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>

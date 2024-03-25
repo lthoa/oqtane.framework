@@ -30,10 +30,19 @@
 @inject IVisitorRepository VisitorRepository
 @inject IJwtManager JwtManager
 
+<!-- CS -->
+@using Clicksoft.KeenThemes
+@using Clicksoft.KeenThemes.Libs
+@inject IBootstrapBase BootstrapBase
+@inject IKTTheme KTTheme
+@{
+    BootstrapBase.Init(KTTheme);
+}
+
 @if (_initialized)
 {
     <!DOCTYPE html>
-    <html lang="@_language">
+    @((MarkupString)KTTheme.HtmlOpen(_language))
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -56,7 +65,7 @@
         }
         @((MarkupString)_headResources)
     </head>
-    <body>
+    @((MarkupString)KTTheme.BodyOpen())
         @if (string.IsNullOrEmpty(_message))
         {
             @if (_renderMode == RenderModes.Static)
@@ -87,8 +96,8 @@
         {
             <div class="app-alert">@_message</div>
         }
-    </body>
-    </html>
+    @((MarkupString)KTTheme.BodyClose())
+    @((MarkupString)KTTheme.HtmlClose())
 }
 
 @code {
