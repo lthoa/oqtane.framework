@@ -30,19 +30,10 @@
 @inject IVisitorRepository VisitorRepository
 @inject IJwtManager JwtManager
 
-<!-- CS -->
-@using Clicksoft.KeenThemes
-@using Clicksoft.KeenThemes.Libs
-@inject IBootstrapBase BootstrapBase
-@inject IKTTheme KTTheme
-@{
-    BootstrapBase.Init(KTTheme);
-}
-
 @if (_initialized)
 {
     <!DOCTYPE html>
-    @((MarkupString)KTTheme.HtmlOpen(_language))
+    <html lang="@_language">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,7 +56,7 @@
         }
         @((MarkupString)_headResources)
     </head>
-    @((MarkupString)KTTheme.BodyOpen())
+    <body>
         @if (string.IsNullOrEmpty(_message))
         {
             @if (_renderMode == RenderModes.Static)
@@ -96,8 +87,8 @@
         {
             <div class="app-alert">@_message</div>
         }
-    @((MarkupString)KTTheme.BodyClose())
-    @((MarkupString)KTTheme.HtmlClose())
+    </body>
+    </html>
 }
 
 @code {
@@ -229,30 +220,30 @@
                         _language = _language.Replace("c=", "");
                     }
 
-                    // create initial PageState 
+                    // create initial PageState
                     _pageState = new PageState
-                    {
-                        Alias = alias,
-                        Site = site,
-                        Page = page,
-                        User = null,
-                        Uri = new Uri(url, UriKind.Absolute),
-                        Route = route,
-                        QueryString = Utilities.ParseQueryString(route.Query),
-                        UrlParameters = route.UrlParameters,
-                        ModuleId = -1,
-                        Action = "",
-                        EditMode = false,
-                        LastSyncDate = DateTime.MinValue,
-                        RenderMode = _renderMode,
-                        Runtime = (Shared.Runtime)Enum.Parse(typeof(Shared.Runtime), _runtime),
-                        VisitorId = _visitorId,
-                        RemoteIPAddress = _remoteIPAddress,
-                        ReturnUrl = "",
-                        IsInternalNavigation = false,
-                        RenderId = Guid.NewGuid(),
-                        Refresh = true
-                    };
+                        {
+                            Alias = alias,
+                            Site = site,
+                            Page = page,
+                            User = null,
+                            Uri = new Uri(url, UriKind.Absolute),
+                            Route = route,
+                            QueryString = Utilities.ParseQueryString(route.Query),
+                            UrlParameters = route.UrlParameters,
+                            ModuleId = -1,
+                            Action = "",
+                            EditMode = false,
+                            LastSyncDate = DateTime.MinValue,
+                            RenderMode = _renderMode,
+                            Runtime = (Shared.Runtime)Enum.Parse(typeof(Shared.Runtime), _runtime),
+                            VisitorId = _visitorId,
+                            RemoteIPAddress = _remoteIPAddress,
+                            ReturnUrl = "",
+                            IsInternalNavigation = false,
+                            RenderId = Guid.NewGuid(),
+                            Refresh = true
+                        };
                 }
                 else
                 {
@@ -707,9 +698,9 @@
             {
                 count++;
                 string id = "id=\"app-stylesheet-" + ResourceLevel.Page.ToString().ToLower() + "-" + batch + "-" + count.ToString("00") + "\" ";
-                _styleSheets += "<link " + id + "rel=\"stylesheet\"" + 
-                    (!string.IsNullOrEmpty(resource.Integrity) ? " integrity=\"" + resource.Integrity + "\"" : "") + 
-                    (!string.IsNullOrEmpty(resource.CrossOrigin) ? " crossorigin=\"" + resource.CrossOrigin + "\"" : "") + 
+                _styleSheets += "<link " + id + "rel=\"stylesheet\"" +
+                    (!string.IsNullOrEmpty(resource.Integrity) ? " integrity=\"" + resource.Integrity + "\"" : "") +
+                    (!string.IsNullOrEmpty(resource.CrossOrigin) ? " crossorigin=\"" + resource.CrossOrigin + "\"" : "") +
                     " href=\"" + resource.Url + "\" type=\"text/css\"/>" + Environment.NewLine; // href at end of element due to enhanced navigation patch algorithm
             }
         }
