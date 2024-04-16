@@ -1,30 +1,10 @@
-var Oqtane = Oqtane || {};
+var Clicksoft = Clicksoft || {};
 
-Oqtane.RichTextEditor = {
-    customImageHandler: function () { return; },
-    createQuill: async function (
-        quillElement, toolBar, readOnly,
-        placeholder, theme, debugLevel) {
-
-        Quill.register('modules/blotFormatter', QuillBlotFormatter.default);
-
-        var options = {
-            debug: debugLevel,
-            modules: {
-                toolbar: {
-                    container: toolBar,
-                    handlers: {
-                        image: Oqtane.RichTextEditor.customImageHandler
-                    }
-                },
-                blotFormatter: {}
-            },
-            placeholder: placeholder,
-            readOnly: readOnly,
-            theme: theme
-        };
-
-        new Quill(quillElement, options);
+Clicksoft.TrumbowygEditor = {
+    createTrumbowyg: async function (divElement) {
+        //divElement.trumbowyg();
+        $('#aa').trumbowyg();
+        alert(divElement);
     },
     getQuillContent: function (editorElement) {
         return JSON.stringify(editorElement.__quill.getContents());

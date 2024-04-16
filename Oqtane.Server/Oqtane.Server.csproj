@@ -77,4 +77,7 @@
       <HintPath>bin\Debug\net8.0\Clicksoft.KeenThemes.Oqtane.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="wwwroot\css\trumbowyg\" />
+  </ItemGroup>
 </Project>
