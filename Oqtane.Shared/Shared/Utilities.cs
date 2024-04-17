@@ -58,7 +58,7 @@ namespace Oqtane.Shared
             var uriBuilder = new UriBuilder
             {
                 Path = !string.IsNullOrEmpty(alias)
-                    ? (!string.IsNullOrEmpty(path)) ? $"{alias}{path}": $"{alias}"
+                    ? (!string.IsNullOrEmpty(path)) ? $"{alias}/{path}": $"{alias}"
                     : $"{path}",
                 Query = querystring,
                 Fragment = fragment
