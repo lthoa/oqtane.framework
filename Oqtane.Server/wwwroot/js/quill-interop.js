@@ -1,7 +1,6 @@
 var Oqtane = Oqtane || {};
 
 Oqtane.RichTextEditor = {
-    customImageHandler: function () { return; },
     createQuill: async function (
         quillElement, toolBar, readOnly,
         placeholder, theme, debugLevel) {
@@ -14,7 +13,7 @@ Oqtane.RichTextEditor = {
                 toolbar: {
                     container: toolBar,
                     handlers: {
-                        image: Oqtane.RichTextEditor.customImageHandler
+                        image: {}
                     }
                 },
                 blotFormatter: {}
@@ -48,7 +47,7 @@ Oqtane.RichTextEditor = {
         if (quillElement.__quill.getSelection() !== null) {
             editorIndex = quillElement.__quill.getSelection().index;
         }
-
+                
         return quillElement.__quill.updateContents(
             new Delta()
                 .retain(editorIndex)
