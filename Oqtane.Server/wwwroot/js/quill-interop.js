@@ -10,7 +10,12 @@ Oqtane.RichTextEditor = {
         var options = {
             debug: debugLevel,
             modules: {
-                toolbar: toolBar,
+                toolbar: {
+                    container: toolBar,
+                    handlers: {
+                        image: {}
+                    }
+                },
                 blotFormatter: {}
             },
             placeholder: placeholder,
