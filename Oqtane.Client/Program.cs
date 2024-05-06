@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Blazored.Modal;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Localization;
@@ -34,6 +35,11 @@ namespace Oqtane.Client
             var httpClient = new HttpClient {BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)};
             builder.Services.AddSingleton(httpClient);            
             builder.Services.AddHttpClient(); // IHttpClientFactory for calling remote services via RemoteServiceBase
+
+            // clicksoft:start
+            builder.Services.AddBlazorBootstrap();
+            builder.Services.AddBlazoredModal();
+            // clicksoft:end
 
             builder.Services.AddOptions();
 
