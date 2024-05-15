@@ -14,7 +14,6 @@ CS.RichTextEditor = {
         return quillElement.__quill.updateContents(
             new Delta()
                 .retain(editorIndex)
-                .insert({ image: imageURL },
-                    { alt: altText }));
+                .insert({ image: imageURL }, { alt: altText }));
     }
 };
