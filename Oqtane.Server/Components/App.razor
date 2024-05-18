@@ -69,20 +69,15 @@
                 <Routes PageState="@_pageState" RenderMode="@_renderMode" Runtime="@_runtime" AntiForgeryToken="@_antiForgeryToken" AuthorizationToken="@_authorizationToken" Platform="@_platform" @rendermode="InteractiveRenderMode.GetInteractiveRenderMode(_runtime, _prerender)" />
             }
 
-            @if (!string.IsNullOrEmpty(_reconnectScript))
-            {
-                @((MarkupString)_reconnectScript)
-            }
-            @if (!string.IsNullOrEmpty(_PWAScript))
-            {
-                @((MarkupString)_PWAScript)
-            }
-            @((MarkupString)_bodyResources)
-
+            <script src="_framework/blazor.web.js"></script>
             <script src="js/app.js"></script>
             <script src="js/loadjs.min.js"></script>
             <script src="js/interop.js"></script>
-            <script src="_framework/blazor.web.js"></script>
+
+            @((MarkupString)_reconnectScript)
+            @((MarkupString)_PWAScript)
+            @((MarkupString)_scrollPositionScript)
+            @((MarkupString)_bodyResources)
         }
         else
         {
@@ -106,8 +101,9 @@
     private string _headResources = "";
     private string _bodyResources = "";
     private string _styleSheets = "";
-    private string _PWAScript = "";
-    private string _reconnectScript = "";
+    private string _reconnectScript = ""; // for Interactive render mode and Blazor Server interactivity only
+    private string _PWAScript = ""; // for PWA apps only
+    private string _scrollPositionScript = ""; // for Static render mode only
     private string _message = "";
     private PageState _pageState;
 
@@ -139,7 +135,7 @@
                 {
                     _renderMode = site.RenderMode;
                     _runtime = site.Runtime;
-                    _prerender = site.Prerender && !Context.User.Identity.IsAuthenticated;
+                    _prerender = site.Prerender;
 
                     Route route = new Route(url, alias.Path);
                     var page = site.Pages.FirstOrDefault(item => item.Path.Equals(route.PagePath, StringComparison.OrdinalIgnoreCase));
@@ -189,6 +185,11 @@
                     {
                         _PWAScript = CreatePWAScript(alias, site, route);
                     }
+                    @if (_renderMode == RenderModes.Static)
+                    {
+                        _scrollPositionScript = CreateScrollPositionScript();
+                    }
+
                     _headResources += ParseScripts(site.HeadContent);
                     _bodyResources += ParseScripts(site.BodyContent);
 
@@ -487,6 +488,24 @@
         "</script>";
     }
 
+    private string CreateScrollPositionScript()
+    {
+        return
+        "<script>" + Environment.NewLine +
+        "   window.interceptNavigation = () => {" + Environment.NewLine +
+        "       let currentUrl = window.location.href;" + Environment.NewLine +
+        "       Blazor.addEventListener('enhancedload', () => {" + Environment.NewLine +
+        "           let newUrl = window.location.href;" + Environment.NewLine +
+        "           if (currentUrl != newUrl) {" + Environment.NewLine +
+        "               window.scrollTo({ top: 0, left: 0, behavior: 'instant' });" + Environment.NewLine +
+        "           }" + Environment.NewLine +
+        "           currentUrl = newUrl;" + Environment.NewLine +
+        "       });" + Environment.NewLine +
+        "   };" + Environment.NewLine +
+        "   document.onload += window.interceptNavigation();" + Environment.NewLine +
+        "</script>";
+    }
+
     private string ParseScripts(string content)
     {
         // iterate scripts
@@ -533,7 +552,7 @@
                     ((!string.IsNullOrEmpty(resource.Integrity)) ? " integrity=\"" + resource.Integrity + "\"" : "") +
                     ((!string.IsNullOrEmpty(resource.CrossOrigin)) ? " crossorigin=\"" + resource.CrossOrigin + "\"" : "") +
                     ((resource.ES6Module) ? " type=\"module\"" : "") +
-                    " src =\"" + url + "\"></script>"; // src at end of element due to enhanced navigation patch algorithm
+                    " src=\"" + url + "\"></script>"; // src at end of element due to enhanced navigation patch algorithm
             }
             else
             {
