@@ -40,7 +40,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <base href="/" />
         <link rel="stylesheet" href="css/app.css" />
-        @if (!string.IsNullOrEmpty(_PWAScript))
+        @if (_scripts.Contains("PWA Manifest"))
         {
             <link id="app-manifest" rel="manifest" />
         }
@@ -74,9 +74,7 @@
             <script src="js/loadjs.min.js"></script>
             <script src="js/interop.js"></script>
 
-            @((MarkupString)_reconnectScript)
-            @((MarkupString)_PWAScript)
-            @((MarkupString)_scrollPositionScript)
+            @((MarkupString)_scripts)
             @((MarkupString)_bodyResources)
         }
         else
@@ -101,9 +99,7 @@
     private string _headResources = "";
     private string _bodyResources = "";
     private string _styleSheets = "";
-    private string _reconnectScript = ""; // for Interactive render mode and Blazor Server interactivity only
-    private string _PWAScript = ""; // for PWA apps only
-    private string _scrollPositionScript = ""; // for Static render mode only
+    private string _scripts = "";
     private string _message = "";
     private PageState _pageState;
 
@@ -177,17 +173,18 @@
                     ManageStyleSheets(resources);
                     ManageScripts(resources, alias);
 
+                    // generate scripts
                     if (_renderMode == RenderModes.Interactive && _runtime == Runtimes.Server)
                     {
-                        _reconnectScript = CreateReconnectScript();
+                        _scripts += CreateReconnectScript();
                     }
                     if (site.PwaIsEnabled && site.PwaAppIconFileId != null && site.PwaSplashIconFileId != null)
                     {
-                        _PWAScript = CreatePWAScript(alias, site, route);
+                        _scripts += CreatePWAScript(alias, site, route);
                     }
                     @if (_renderMode == RenderModes.Static)
                     {
-                        _scrollPositionScript = CreateScrollPositionScript();
+                        _scripts += CreateScrollPositionScript();
                     }
 
                     _headResources += ParseScripts(site.HeadContent);
@@ -430,7 +427,7 @@
 
     private string CreatePWAScript(Alias alias, Site site, Route route)
     {
-        return
+        return Environment.NewLine +
         "<script>" + Environment.NewLine +
         "    // PWA Manifest" + Environment.NewLine +
         "    setTimeout(() => {" + Environment.NewLine +
@@ -466,14 +463,14 @@
         "            console.log('ServiceWorker Registration Failed ', err);" + Environment.NewLine +
         "        });" + Environment.NewLine +
         "    };" + Environment.NewLine +
-        "</script>";
+        "</script>" + Environment.NewLine;
     }
 
     private string CreateReconnectScript()
     {
-        return
+        return Environment.NewLine +
         "<script>" + Environment.NewLine +
-        "    // Blazor Server Reconnect" + Environment.NewLine +
+        "    // Interactive Blazor Server Reconnect" + Environment.NewLine +
         "    new MutationObserver((mutations, observer) => {" + Environment.NewLine +
         "        if (document.querySelector('#components-reconnect-modal h5 a')) {" + Environment.NewLine +
         "            async function attemptReload() {" + Environment.NewLine +
@@ -485,25 +482,26 @@
         "            setInterval(attemptReload, 5000);" + Environment.NewLine +
         "        }" + Environment.NewLine +
         "    }).observe(document.body, { childList: true, subtree: true });" + Environment.NewLine +
-        "</script>";
+        "</script>" + Environment.NewLine;
     }
 
     private string CreateScrollPositionScript()
     {
-        return
+        return Environment.NewLine +
         "<script>" + Environment.NewLine +
-        "   window.interceptNavigation = () => {" + Environment.NewLine +
-        "       let currentUrl = window.location.href;" + Environment.NewLine +
-        "       Blazor.addEventListener('enhancedload', () => {" + Environment.NewLine +
-        "           let newUrl = window.location.href;" + Environment.NewLine +
-        "           if (currentUrl != newUrl) {" + Environment.NewLine +
-        "               window.scrollTo({ top: 0, left: 0, behavior: 'instant' });" + Environment.NewLine +
-        "           }" + Environment.NewLine +
-        "           currentUrl = newUrl;" + Environment.NewLine +
-        "       });" + Environment.NewLine +
-        "   };" + Environment.NewLine +
-        "   document.onload += window.interceptNavigation();" + Environment.NewLine +
-        "</script>";
+        "    // Blazor Static Rendering Scroll Position" + Environment.NewLine +
+        "    window.interceptNavigation = () => {" + Environment.NewLine +
+        "        let currentUrl = window.location.href;" + Environment.NewLine +
+        "        Blazor.addEventListener('enhancedload', () => {" + Environment.NewLine +
+        "            let newUrl = window.location.href;" + Environment.NewLine +
+        "            if (currentUrl != newUrl) {" + Environment.NewLine +
+        "                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });" + Environment.NewLine +
+        "            }" + Environment.NewLine +
+        "            currentUrl = newUrl;" + Environment.NewLine +
+        "        });" + Environment.NewLine +
+        "    };" + Environment.NewLine +
+        "    document.onload += window.interceptNavigation();" + Environment.NewLine +
+        "</script>" + Environment.NewLine;
     }
 
     private string ParseScripts(string content)
