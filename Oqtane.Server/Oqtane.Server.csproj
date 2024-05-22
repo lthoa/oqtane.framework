@@ -78,6 +78,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Content\Log\" />
     <Folder Include="wwwroot\css\trumbowyg\" />
   </ItemGroup>
 </Project>

@@ -36,7 +36,7 @@ namespace Oqtane.Client
             builder.Services.AddHttpClient(); // IHttpClientFactory for calling remote services via RemoteServiceBase
 
             builder.Services.AddOptions();
-            //builder.Services.AddBlazorBootstrap();
+            builder.Services.AddBlazorBootstrap();
 
             // register localization services
             builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
