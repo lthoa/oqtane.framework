@@ -137,7 +137,7 @@
         <div class="table-responsive">
             <table class="@Class">
                 <thead>
-                    <tr class="@RowClass">@Header</tr>
+                    <tr class="@HeaderClass">@Header</tr>
                 </thead>
                 <tbody>
                     @foreach (var item in ItemList)
@@ -349,6 +349,9 @@
 
     [Parameter]
     public string RowClass { get; set; } // class for row element - ie. <tr> for Table or <div> for Grid
+  
+    [Parameter]
+    public string HeaderClass { get; set; } // class for header element - ie. <tr> for Table or <div> for Grid
 
     [Parameter]
     public string ColumnClass { get; set; } // class for column element - only applicable to Grid format
