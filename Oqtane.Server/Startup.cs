@@ -23,6 +23,7 @@ using OqtaneSSR.Extensions;
 using Microsoft.AspNetCore.Components.Authorization;
 using Oqtane.Providers;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using System.Text.Json.Serialization;
 
 namespace Oqtane
 {
@@ -144,6 +145,10 @@ namespace Oqtane
             {
                 options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
             })
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                })
             .AddOqtaneApplicationParts() // register any Controllers from custom modules
             .ConfigureOqtaneMvc(); // any additional configuration from IStartup classes
 
