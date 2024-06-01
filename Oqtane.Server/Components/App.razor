@@ -34,7 +34,7 @@
 @if (_initialized)
 {
     <!DOCTYPE html>
-    <html lang="@_language" data-bs-theme="light">
+    <html lang="@_language">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -132,6 +132,7 @@
                     _renderMode = site.RenderMode;
                     _runtime = site.Runtime;
                     _prerender = site.Prerender;
+                    var modules = new List<Module>();
 
                     Route route = new Route(url, alias.Path);
                     var page = site.Pages.FirstOrDefault(item => item.Path.Equals(route.PagePath, StringComparison.OrdinalIgnoreCase));
@@ -156,6 +157,10 @@
                     {
                         HandlePageNotFound(site, page, route);
                     }
+                    else
+                    {
+                        modules = await SiteService.GetModulesAsync(site.SiteId, page.PageId);
+                    }
 
                     if (site.VisitorTracking)
                     {
@@ -169,7 +174,7 @@
                     }
 
                     // includes resources
-                    var resources = GetPageResources(alias, site, page, int.Parse(route.ModuleId, CultureInfo.InvariantCulture), route.Action);
+                    var resources = await GetPageResources(alias, site, page, modules, int.Parse(route.ModuleId, CultureInfo.InvariantCulture), route.Action);
                     ManageStyleSheets(resources);
                     ManageScripts(resources, alias);
 
@@ -217,28 +222,29 @@
 
                     // create initial PageState
                     _pageState = new PageState
-                        {
-                            Alias = alias,
-                            Site = site,
-                            Page = page,
-                            User = null,
-                            Uri = new Uri(url, UriKind.Absolute),
-                            Route = route,
-                            QueryString = Utilities.ParseQueryString(route.Query),
-                            UrlParameters = route.UrlParameters,
-                            ModuleId = -1,
-                            Action = "",
-                            EditMode = false,
-                            LastSyncDate = DateTime.MinValue,
-                            RenderMode = _renderMode,
-                            Runtime = (Shared.Runtime)Enum.Parse(typeof(Shared.Runtime), _runtime),
-                            VisitorId = _visitorId,
-                            RemoteIPAddress = _remoteIPAddress,
-                            ReturnUrl = "",
-                            IsInternalNavigation = false,
-                            RenderId = Guid.NewGuid(),
-                            Refresh = true
-                        };
+                    {
+                        Alias = alias,
+                        Site = site,
+                        Page = page,
+                        Modules = modules,
+                        User = null,
+                        Uri = new Uri(url, UriKind.Absolute),
+                        Route = route,
+                        QueryString = Utilities.ParseQueryString(route.Query),
+                        UrlParameters = route.UrlParameters,
+                        ModuleId = -1,
+                        Action = "",
+                        EditMode = false,
+                        LastSyncDate = DateTime.MinValue,
+                        RenderMode = _renderMode,
+                        Runtime = (Shared.Runtime)Enum.Parse(typeof(Shared.Runtime), _runtime),
+                        VisitorId = _visitorId,
+                        RemoteIPAddress = _remoteIPAddress,
+                        ReturnUrl = "",
+                        IsInternalNavigation = false,
+                        RenderId = Guid.NewGuid(),
+                        Refresh = true
+                    };
                 }
                 else
                 {
@@ -324,14 +330,26 @@
             int? userid = Context.User.UserId();
             userid = (userid == -1) ? null : userid;
 
-            // check if cookie already exists
+            // get cookie value
+            var visitorCookieName = Constants.VisitorCookiePrefix + SiteId.ToString();
+            var visitorCookieValue = Context.Request.Cookies[visitorCookieName];
+            DateTime expiry = DateTime.MinValue;
+            if (visitorCookieValue != null && visitorCookieValue.Contains("|"))
+            {
+                var values = visitorCookieValue.Split('|');
+                int.TryParse(values[0], out _visitorId);
+                DateTime.TryParse(values[1], out expiry);
+            }
+            else // legacy cookie format
+            {
+                int.TryParse(visitorCookieValue, out _visitorId);
+            }
+            bool setcookie = false;
             Visitor visitor = null;
-            bool addcookie = false;
-            var VisitorCookie = Constants.VisitorCookiePrefix + SiteId.ToString();
-            if (!int.TryParse(Context.Request.Cookies[VisitorCookie], out _visitorId))
+
+            if (_visitorId <= 0)
             {
                 // if enabled use IP Address correlation
-                _visitorId = -1;
                 var correlate = bool.Parse(settings.GetValue("VisitorCorrelation", "true"));
                 if (correlate)
                 {
@@ -339,12 +357,12 @@
                     if (visitor != null)
                     {
                         _visitorId = visitor.VisitorId;
-                        addcookie = true;
+                        setcookie = true;
                     }
                 }
             }
 
-            if (_visitorId == -1)
+            if (_visitorId <= 0)
             {
                 // create new visitor
                 visitor = new Visitor();
@@ -360,52 +378,59 @@
                 visitor.VisitedOn = DateTime.UtcNow;
                 visitor = VisitorRepository.AddVisitor(visitor);
                 _visitorId = visitor.VisitorId;
-                addcookie = true;
+                setcookie = true;
             }
             else
             {
-                if (visitor == null)
+                // check expiry
+                if (DateTime.UtcNow > expiry)
                 {
-                    // get visitor if it was not previously loaded
-                    visitor = VisitorRepository.GetVisitor(_visitorId);
-                }
-                if (visitor != null)
-                {
-                    // update visitor
-                    visitor.IPAddress = _remoteIPAddress;
-                    visitor.UserAgent = useragent;
-                    visitor.Language = language;
-                    visitor.Url = url;
-                    if (!string.IsNullOrEmpty(referrer))
+                    if (visitor == null)
                     {
-                        visitor.Referrer = referrer;
+                        // get visitor if not previously loaded
+                        visitor = VisitorRepository.GetVisitor(_visitorId);
                     }
-                    if (userid != null)
+                    if (visitor != null)
                     {
-                        visitor.UserId = userid;
+                        // update visitor
+                        visitor.IPAddress = _remoteIPAddress;
+                        visitor.UserAgent = useragent;
+                        visitor.Language = language;
+                        visitor.Url = url;
+                        if (!string.IsNullOrEmpty(referrer))
+                        {
+                            visitor.Referrer = referrer;
+                        }
+                        if (userid != null)
+                        {
+                            visitor.UserId = userid;
+                        }
+                        visitor.Visits += 1;
+                        visitor.VisitedOn = DateTime.UtcNow;
+                        VisitorRepository.UpdateVisitor(visitor);
+                        setcookie = true;
                     }
-                    visitor.Visits += 1;
-                    visitor.VisitedOn = DateTime.UtcNow;
-                    VisitorRepository.UpdateVisitor(visitor);
-                }
-                else
-                {
-                    // remove cookie if VisitorId does not exist
-                    Context.Response.Cookies.Delete(VisitorCookie);
+                    else
+                    {
+                        // remove cookie if visitor does not exist
+                        Context.Response.Cookies.Delete(visitorCookieName);
+                    }
                 }
             }
 
-            // append cookie
-            if (addcookie)
+            // set cookie
+            if (setcookie)
             {
+                expiry = DateTime.UtcNow.AddMinutes(int.Parse(settings.GetValue("VisitorDuration", "5")));
+
                 Context.Response.Cookies.Append(
-                    VisitorCookie,
-                    _visitorId.ToString(),
+                    visitorCookieName,
+                    $"{_visitorId}|{expiry}",
                     new CookieOptions()
-                        {
-                            Expires = DateTimeOffset.UtcNow.AddYears(1),
-                            IsEssential = true
-                        }
+                    {
+                        Expires = DateTimeOffset.UtcNow.AddYears(10),
+                        IsEssential = true
+                    }
                 );
             }
         }
@@ -572,7 +597,7 @@
             CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(culture)));
     }
 
-    private List<Resource> GetPageResources(Alias alias, Site site, Page page, int moduleid, string action)
+    private async Task<List<Resource>> GetPageResources(Alias alias, Site site, Page page, List<Module> modules, int moduleid, string action)
     {
         var resources = new List<Resource>();
 
@@ -598,7 +623,7 @@
             }
         }
 
-        foreach (Module module in site.Modules.Where(item => item.PageId == page.PageId || item.ModuleId == moduleid))
+        foreach (Module module in modules.Where(item => item.PageId == page.PageId || item.ModuleId == moduleid))
         {
             var typename = "";
             if (module.ModuleDefinition != null)
@@ -664,13 +689,16 @@
             }
         }
 
-        // site level resources for modules in site
-        var modules = site.Modules.GroupBy(item => item.ModuleDefinition?.ModuleDefinitionName).Select(group => group.First()).ToList();
-        foreach (var module in modules)
+        if (site.RenderMode == RenderModes.Interactive)
         {
-            if (module.ModuleDefinition?.Resources != null)
+            // site level resources for modules in site
+            var sitemodules = await SiteService.GetModulesAsync(site.SiteId, -1);
+            foreach (var module in sitemodules.GroupBy(item => item.ModuleDefinition?.ModuleDefinitionName).Select(group => group.First()).ToList())
             {
-                resources = AddResources(resources, module.ModuleDefinition.Resources.Where(item => item.ResourceType == ResourceType.Script && item.Level == ResourceLevel.Site).ToList(), ResourceLevel.Module, alias, "Modules", Utilities.GetTypeName(module.ModuleDefinition.ModuleDefinitionName), site.RenderMode);
+                if (module.ModuleDefinition?.Resources != null)
+                {
+                    resources = AddResources(resources, module.ModuleDefinition.Resources.Where(item => item.ResourceType == ResourceType.Script && item.Level == ResourceLevel.Site).ToList(), ResourceLevel.Module, alias, "Modules", Utilities.GetTypeName(module.ModuleDefinition.ModuleDefinitionName), site.RenderMode);
+                }
             }
         }
 
@@ -716,9 +744,9 @@
             {
                 count++;
                 string id = "id=\"app-stylesheet-" + ResourceLevel.Page.ToString().ToLower() + "-" + batch + "-" + count.ToString("00") + "\" ";
-                _styleSheets += "<link " + id + "rel=\"stylesheet\"" +
-                    (!string.IsNullOrEmpty(resource.Integrity) ? " integrity=\"" + resource.Integrity + "\"" : "") +
-                    (!string.IsNullOrEmpty(resource.CrossOrigin) ? " crossorigin=\"" + resource.CrossOrigin + "\"" : "") +
+                _styleSheets += "<link " + id + "rel=\"stylesheet\"" + 
+                    (!string.IsNullOrEmpty(resource.Integrity) ? " integrity=\"" + resource.Integrity + "\"" : "") + 
+                    (!string.IsNullOrEmpty(resource.CrossOrigin) ? " crossorigin=\"" + resource.CrossOrigin + "\"" : "") + 
                     " href=\"" + resource.Url + "\" type=\"text/css\"/>" + Environment.NewLine; // href at end of element due to enhanced navigation patch algorithm
             }
         }
