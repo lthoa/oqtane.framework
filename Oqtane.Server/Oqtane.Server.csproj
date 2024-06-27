@@ -74,11 +74,6 @@
     <Watch Include="**\*.dll" Exclude="**\Microsoft.EntityFrameworkCore.*.dll;**\Oqtane.Database.*.dll;" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Clicksoft.KeenThemes.Oqtane">
-      <HintPath>bin\Debug\net8.0\Clicksoft.KeenThemes.Oqtane.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <Folder Include="Content\Log\" />
     <Folder Include="wwwroot\css\trumbowyg\" />
   </ItemGroup>
