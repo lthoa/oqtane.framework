@@ -50,7 +50,7 @@ namespace Oqtane.Managers.Search
                 }
 
                 var module = pageModule.Module;
-                if (module.ModuleDefinition.ServerManagerType != "")
+                if (module.ModuleDefinition != null && module.ModuleDefinition.ServerManagerType != "")
                 {
                     _logger.LogDebug($"Search: Begin index module {module.ModuleId}.");
                     var type = Type.GetType(module.ModuleDefinition.ServerManagerType);
@@ -95,19 +95,19 @@ namespace Oqtane.Managers.Search
                 searchContent.EntityName = EntityNames.Module;
             }
 
-            if(searchContent.EntityId == 0)
+            if(string.IsNullOrEmpty(searchContent.EntityId))
             {
-                searchContent.EntityId = pageModule.ModuleId;
+                searchContent.EntityId = pageModule.ModuleId.ToString();
             }
 
-            if (searchContent.IsActive)
+            if (string.IsNullOrEmpty(searchContent.Permissions))
             {
-                searchContent.IsActive = !pageModule.Module.IsDeleted;
+                searchContent.Permissions = $"{EntityNames.Module}:{pageModule.ModuleId},{EntityNames.Page}:{pageModule.PageId}";
             }
 
-            if (searchContent.ModifiedTime == DateTime.MinValue)
+            if (searchContent.ContentModifiedOn == DateTime.MinValue)
             {
-                searchContent.ModifiedTime = pageModule.ModifiedOn;
+                searchContent.ContentModifiedOn = pageModule.ModifiedOn;
             }
 
             if (string.IsNullOrEmpty(searchContent.AdditionalContent))
@@ -115,16 +115,17 @@ namespace Oqtane.Managers.Search
                 searchContent.AdditionalContent = string.Empty;
             }
 
-            var page = _pageRepository.GetPage(pageModule.PageId);
-
-            if (string.IsNullOrEmpty(searchContent.Url) && page != null)
+            if (pageModule.Page != null)
             {
-                searchContent.Url = $"{(!string.IsNullOrEmpty(page.Path) && !page.Path.StartsWith("/") ? "/" : "")}{page.Path}";
-            }
+                if (string.IsNullOrEmpty(searchContent.Url))
+                {
+                    searchContent.Url = $"{(!string.IsNullOrEmpty(pageModule.Page.Path) && !pageModule.Page.Path.StartsWith("/") ? "/" : "")}{pageModule.Page.Path}";
+                }
 
-            if (string.IsNullOrEmpty(searchContent.Title) && page != null)
-            {
-                searchContent.Title = !string.IsNullOrEmpty(page.Title) ? page.Title : page.Name;
+                if (string.IsNullOrEmpty(searchContent.Title))
+                {
+                    searchContent.Title = !string.IsNullOrEmpty(pageModule.Page.Title) ? pageModule.Page.Title : pageModule.Page.Name;
+                }
             }
 
             if (searchContent.SearchContentProperties == null)
