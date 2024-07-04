@@ -1,6 +1,12 @@
-.folder-tree ul{
-    padding:0;
-    margin:0;
+.folder-tree,
+.file-list {
+    min-height: 600px
+}
+
+
+.folder-tree ul {
+    padding: 0;
+    margin: 0;
 }
 .menu-group {
     display: flex
@@ -94,9 +100,8 @@
             position: relative;
             overflow: hidden;
             flex-shrink: 0;
-            margin: 0 .5rem 0 0;
-            width: 20px;
-            height: 12px;        
+            width: 30px;
+            height: 14px;        
         }
 
     .menu-item .menu-link .menu-arrow:after {
@@ -148,6 +153,15 @@
     transform: rotateZ(90deg);
     transition: transform .3s ease
 }
+
+
+.menu-arrow[aria-expanded="true"] {
+    color: rgba(var(--bs-emphasis-color-rgb), .85);
+}
+
+    .menu-arrow[aria-expanded="true"]:after {
+        transform: rotate(90deg);
+    }
 
 .menu-item.menu-accordion.show:not(.hiding):not(.menu-dropdown) > .menu-link .menu-arrow:after, .menu-item.menu-accordion.showing:not(.menu-dropdown) > .menu-link .menu-arrow:after {
     transform: rotateZ(90deg);
