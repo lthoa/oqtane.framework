@@ -2,203 +2,97 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Oqtane.Infrastructure;
 using Oqtane.Models;
 using Oqtane.Repository;
 using Oqtane.Security;
 using Oqtane.Shared;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace Oqtane.Services
 {
     public class SearchService : ISearchService
     {
         private const string SearchProviderSettingName = "SearchProvider";
-        private const string SearchEnabledSettingName = "SearchEnabled";
 
         private readonly IServiceProvider _serviceProvider;
-        private readonly ITenantManager _tenantManager;
-        private readonly IAliasRepository _aliasRepository;
         private readonly ISettingRepository _settingRepository;
         private readonly IPermissionRepository _permissionRepository;
-        private readonly ILogger<SearchService> _logger;
-        private readonly IMemoryCache _cache;
 
         public SearchService(
             IServiceProvider serviceProvider,
-            ITenantManager tenantManager,
-            IAliasRepository aliasRepository,
             ISettingRepository settingRepository,
-            IPermissionRepository permissionRepository,
-            ILogger<SearchService> logger,
-            IMemoryCache cache)
+            IPermissionRepository permissionRepository)
         {
-            _tenantManager = tenantManager;
-            _aliasRepository = aliasRepository;
             _settingRepository = settingRepository;
             _permissionRepository = permissionRepository;
             _serviceProvider = serviceProvider;
-            _logger = logger;
-            _cache = cache;
         }
 
-        public void IndexContent(int siteId, DateTime? startTime, Action<string> logNote, Action<string> handleError)
+        public async Task<SearchResults> GetSearchResultsAsync(SearchQuery searchQuery)
         {
-            var searchEnabled = SearchEnabled(siteId);
-            if(!searchEnabled)
+            var searchProvider = GetSearchProvider(searchQuery.SiteId);
+            var searchResults = await searchProvider.GetSearchResultsAsync(searchQuery);
+
+            var totalResults = 0;
+
+            // trim results based on permissions
+            var results = searchResults.Where(i => IsVisible(i, searchQuery));
+
+            if (searchQuery.SortDirection == SearchSortDirections.Descending)
             {
-                logNote($"Search: Search is disabled on site {siteId}.<br />");
-                return;
-            }
-
-            _logger.LogDebug($"Search: Start Index Content of {siteId}, Start Time: {startTime.GetValueOrDefault(DateTime.MinValue)}");
-
-            var searchProvider = GetSearchProvider(siteId);
-
-            SetTenant(siteId);
-
-            if (startTime == null)
-            {
-                searchProvider.ResetIndex();
-            }
-
-            var searchIndexManagers = GetSearchIndexManagers(m => { });
-            foreach (var searchIndexManager in searchIndexManagers)
-            {
-                if (!searchIndexManager.IsIndexEnabled(siteId))
+                switch (searchQuery.SortField)
                 {
-                    logNote($"Search: Ignore indexer {searchIndexManager.Name} because it's disabled.<br />");
+                    case SearchSortFields.Relevance:
+                        results = results.OrderByDescending(i => i.Score).ThenByDescending(i => i.ContentModifiedOn);
+                        break;
+                    case SearchSortFields.Title:
+                        results = results.OrderByDescending(i => i.Title).ThenByDescending(i => i.ContentModifiedOn);
+                        break;
+                    default:
+                        results = results.OrderByDescending(i => i.ContentModifiedOn);
+                        break;
+                }
+            }
+            else
+            {
+                switch (searchQuery.SortField)
+                {
+                    case SearchSortFields.Relevance:
+                        results = results.OrderBy(i => i.Score).ThenByDescending(i => i.ContentModifiedOn);
+                        break;
+                    case SearchSortFields.Title:
+                        results = results.OrderBy(i => i.Title).ThenByDescending(i => i.ContentModifiedOn);
+                        break;
+                    default:
+                        results = results.OrderBy(i => i.ContentModifiedOn);
+                        break;
+                }
+            }
+
+            // remove duplicated results based on page id for Page and Module types
+            results = results.DistinctBy(i =>
+            {
+                if (i.EntityName == EntityNames.Page || i.EntityName == EntityNames.Module)
+                {
+                    var pageId = i.SearchContentProperties.FirstOrDefault(p => p.Name == Constants.SearchPageIdPropertyName)?.Value ?? string.Empty;
+                    return !string.IsNullOrEmpty(pageId) ? pageId : i.UniqueKey;
                 }
                 else
                 {
-                    _logger.LogDebug($"Search: Begin Index {searchIndexManager.Name}");
-
-                    var count = searchIndexManager.IndexContent(siteId, startTime, SaveSearchContent, handleError);
-                    logNote($"Search: Indexer {searchIndexManager.Name} processed {count} search content.<br />");
-
-                    _logger.LogDebug($"Search: End Index {searchIndexManager.Name}");
+                    return i.UniqueKey;
                 }
-            }
-        }
+            });
 
-        public async Task<SearchResults> SearchAsync(SearchQuery searchQuery)
-        {
-            var searchProvider = GetSearchProvider(searchQuery.SiteId);
-            var searchResults = await searchProvider.SearchAsync(searchQuery, Visible);
+            totalResults = results.Count();
 
-            //generate the document url if it's not set.
-            foreach (var result in searchResults.Results)
+            return new SearchResults
             {
-                if(string.IsNullOrEmpty(result.Url))
-                {
-                    result.Url = GetDocumentUrl(result, searchQuery);
-                }
-            }
-
-            return searchResults;
+                Results = results.Skip(searchQuery.PageIndex * searchQuery.PageSize).Take(searchQuery.PageSize).ToList(),
+                TotalResults = totalResults
+            };
         }
 
-        private ISearchProvider GetSearchProvider(int siteId)
-        {
-            var providerName = GetSearchProviderSetting(siteId);
-            var searchProviders = _serviceProvider.GetServices<ISearchProvider>();
-            var provider = searchProviders.FirstOrDefault(i => i.Name == providerName);
-            if(provider == null)
-            {
-                provider = searchProviders.FirstOrDefault(i => i.Name == Constants.DefaultSearchProviderName);
-            }
-
-            return provider;
-        }
-
-        private string GetSearchProviderSetting(int siteId)
-        {
-            var setting = _settingRepository.GetSetting(EntityNames.Site, siteId, SearchProviderSettingName);
-            if(!string.IsNullOrEmpty(setting?.SettingValue))
-            {
-                return setting.SettingValue;
-            }
-
-            return Constants.DefaultSearchProviderName;
-        }
-
-        private bool SearchEnabled(int siteId)
-        {
-            var setting = _settingRepository.GetSetting(EntityNames.Site, siteId, SearchEnabledSettingName);
-            if (!string.IsNullOrEmpty(setting?.SettingValue))
-            {
-                return bool.TryParse(setting.SettingValue, out bool enabled) && enabled;
-            }
-
-            return true;
-        }
-
-        private void SetTenant(int siteId)
-        {
-            var alias = _aliasRepository.GetAliases().OrderBy(i => i.SiteId).ThenByDescending(i => i.IsDefault).FirstOrDefault(i => i.SiteId == siteId);
-            _tenantManager.SetAlias(alias);
-        }
-
-        private List<ISearchIndexManager> GetSearchIndexManagers(Action<ISearchIndexManager> initManager)
-        {
-            var managers = new List<ISearchIndexManager>();
-            var managerTypes = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(s => s.GetTypes())
-                .Where(p => typeof(ISearchIndexManager).IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract);
-
-            foreach (var type in managerTypes)
-            {
-                var manager = (ISearchIndexManager)ActivatorUtilities.CreateInstance(_serviceProvider, type);
-                initManager(manager);
-                managers.Add(manager);
-            }
-
-            return managers.OrderBy(i => i.Priority).ToList();
-        }
-
-        private List<ISearchResultManager> GetSearchResultManagers()
-        {
-            var managers = new List<ISearchResultManager>();
-            var managerTypes = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(s => s.GetTypes())
-                .Where(p => typeof(ISearchResultManager).IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract);
-
-            foreach (var type in managerTypes)
-            {
-                var manager = (ISearchResultManager)ActivatorUtilities.CreateInstance(_serviceProvider, type);
-                managers.Add(manager);
-            }
-
-            return managers.ToList();
-        }
-
-        private void SaveSearchContent(List<SearchContent> searchContentList)
-        {
-            if(searchContentList.Any())
-            {
-                var searchProvider = GetSearchProvider(searchContentList.First().SiteId);
-
-                foreach (var searchContent in searchContentList)
-                {
-                    try
-                    {
-                        searchProvider.SaveSearchContent(searchContent);
-                    }
-                    catch(Exception ex)
-                    {
-                        _logger.LogError(ex, $"Search: Save search content {searchContent.UniqueKey} failed.");
-                    }
-                }
-
-                //commit the index changes
-                searchProvider.Commit();
-            }
-        }
-
-        private bool Visible(SearchContent searchContent, SearchQuery searchQuery)
+        private bool IsVisible(SearchContent searchContent, SearchQuery searchQuery)
         {
             var visible = true;
             foreach (var permission in searchContent.Permissions.Split(','))
@@ -220,15 +114,52 @@ namespace Oqtane.Services
             return UserSecurity.IsAuthorized(user, PermissionNames.View, permissions);
         }
 
-        private string GetDocumentUrl(SearchResult result, SearchQuery searchQuery)
+        public async Task<string> SaveSearchContentsAsync(List<SearchContent> searchContents, Dictionary<string, string> siteSettings)
         {
-            var searchResultManager = GetSearchResultManagers().FirstOrDefault(i => i.Name == result.EntityName);
-            if(searchResultManager != null)
+            var result = "";
+
+            if (searchContents.Any())
             {
-                return searchResultManager.GetUrl(result, searchQuery);
+                var searchProvider = GetSearchProvider(searchContents.First().SiteId);
+
+                foreach (var searchContent in searchContents)
+                {
+                    try
+                    {
+                        await searchProvider.SaveSearchContent(searchContent, siteSettings);
+                    }
+                    catch (Exception ex)
+                    {
+                        result += $"Error Saving Search Content With UniqueKey {searchContent.UniqueKey} - {ex.Message}<br />";
+                    }
+                }
             }
 
-            return string.Empty;
+            return result;
+        }
+
+        private ISearchProvider GetSearchProvider(int siteId)
+        {
+            var providerName = GetSearchProviderSetting(siteId);
+            var searchProviders = _serviceProvider.GetServices<ISearchProvider>();
+            var provider = searchProviders.FirstOrDefault(i => i.Name == providerName);
+            if (provider == null)
+            {
+                provider = searchProviders.FirstOrDefault(i => i.Name == Constants.DefaultSearchProviderName);
+            }
+
+            return provider;
+        }
+
+        private string GetSearchProviderSetting(int siteId)
+        {
+            var setting = _settingRepository.GetSetting(EntityNames.Site, siteId, SearchProviderSettingName);
+            if (!string.IsNullOrEmpty(setting?.SettingValue))
+            {
+                return setting.SettingValue;
+            }
+
+            return Constants.DefaultSearchProviderName;
         }
     }
 }
