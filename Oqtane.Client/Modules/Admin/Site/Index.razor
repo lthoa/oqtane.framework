@@ -699,6 +699,7 @@
                             }
                         }
 
+                        site.CreatedBy = "host";
                         site = await SiteService.UpdateSiteAsync(site);
 
                         // SMTP
