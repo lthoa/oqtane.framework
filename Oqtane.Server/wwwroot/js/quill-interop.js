@@ -6,6 +6,7 @@ Oqtane.RichTextEditor = {
         placeholder, theme, debugLevel) {
 
         Quill.register('modules/blotFormatter', QuillBlotFormatter.default);
+        Quill.register('modules/imagenote', ImageNote);
 
         var options = {
             debug: debugLevel,
@@ -16,14 +17,19 @@ Oqtane.RichTextEditor = {
                         image: {}
                     }
                 },
-                blotFormatter: {}
+                blotFormatter: {},
+                imagenote: {
+                    srcstartwidth: "/api/file/image/",
+                    containerid: "img_note_edit",
+                    hddenid: "selected_fileid"
+                }
             },
             placeholder: placeholder,
             readOnly: readOnly,
             theme: theme
         };
 
-        new Quill(quillElement, options);
+        this.quill = new Quill(quillElement, options);
         
         var settingsButton = document.querySelector('.ql-toolbar button.ql-settings');
         if (settingsButton !== null) {
@@ -31,31 +37,31 @@ Oqtane.RichTextEditor = {
         }
     },
     getQuillContent: function (editorElement) {
-        return JSON.stringify(editorElement.__quill.getContents());
+        return JSON.stringify(this.quill.getContents());
     },
     getQuillText: function (editorElement) {
-        return editorElement.__quill.getText();
+        return this.quill.getText();
     },
     getQuillHTML: function (editorElement) {
-        return editorElement.__quill.root.innerHTML;
+        return this.quill.root.innerHTML;
     },
     loadQuillContent: function (editorElement, editorContent) {
-        return editorElement.__quill.root.innerHTML = editorContent;
+        return this.quill.root.innerHTML = editorContent;
     },
     enableQuillEditor: function (editorElement, mode) {
-        editorElement.__quill.enable(mode);
+        this.quill.enable(mode);
     },
     getCurrentCursor: function (quillElement) {
         var editorIndex = 0;
-        if (quillElement.__quill.getSelection() !== null) {
-            editorIndex = quillElement.__quill.getSelection().index;
+        if (this.quill.getSelection() !== null) {
+            editorIndex = this.quill.getSelection().index;
         }
         return editorIndex;
     },
     insertQuillImage: function (quillElement, imageURL, altText, editorIndex) {
         var Delta = Quill.import('delta');
 
-        return quillElement.__quill.updateContents(
+        return this.quill.updateContents(
             new Delta()
                 .retain(editorIndex)
                 .insert({ image: imageURL },
