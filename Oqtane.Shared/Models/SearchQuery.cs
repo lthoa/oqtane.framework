@@ -12,11 +12,13 @@ namespace Oqtane.Models
 
         public string Keywords { get; set; }
 
-        public List<string> EntityNames { get; set; } = new List<string>();
+        public string IncludeEntities { get; set; } = ""; // comma delimited entities to include
 
-        public DateTime From { get; set; }
+        public string ExcludeEntities { get; set; } = ""; // comma delimited entities to exclude
 
-        public DateTime To { get; set; }
+        public DateTime FromDate { get; set; }
+
+        public DateTime ToDate { get; set; }
 
         public IDictionary<string, string> Properties { get; set; } = new Dictionary<string, string>();
 
@@ -24,10 +26,10 @@ namespace Oqtane.Models
 
         public int PageSize { get; set; }
 
-        public SearchSortFields SortField { get; set; }
+        public SearchSortField SortField { get; set; }
 
-        public SearchSortDirections SortDirection { get; set; }
+        public SearchSortOrder SortOrder { get; set; }
 
-        public int BodySnippetLength { get; set;} = 255;
+        public int BodyLength { get; set;} = 255;
     }
 }

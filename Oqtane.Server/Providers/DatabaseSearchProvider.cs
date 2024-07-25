@@ -74,7 +74,7 @@ namespace Oqtane.Providers
                         prefix = string.Empty;
                     }
 
-                    var length = searchQuery.BodySnippetLength;
+                    var length = searchQuery.BodyLength;
                     if (start + length >= content.Length)
                     {
                         length = content.Length - start;
@@ -88,7 +88,7 @@ namespace Oqtane.Providers
 
             if (string.IsNullOrEmpty(snippet))
             {
-                snippet = content.Substring(0, searchQuery.BodySnippetLength);
+                snippet = content.Substring(0, searchQuery.BodyLength);
             }
 
             foreach (var keyword in SearchUtils.GetKeywords(searchQuery.Keywords))
@@ -127,6 +127,36 @@ namespace Oqtane.Providers
             }
 
             return Task.CompletedTask;
+        }
+
+        private void CleanSearchContent(SearchContent searchContent)
+        {
+            searchContent.Title = GetCleanContent(searchContent.Title);
+            searchContent.Description = GetCleanContent(searchContent.Description);
+            searchContent.Body = GetCleanContent(searchContent.Body);
+            searchContent.AdditionalContent = GetCleanContent(searchContent.AdditionalContent);
+        }
+
+        private string GetCleanContent(string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return string.Empty;
+            }
+
+            content = WebUtility.HtmlDecode(content);
+
+            var page = new HtmlDocument();
+            page.LoadHtml(content);
+
+            var phrases = page.DocumentNode.Descendants().Where(i =>
+                    i.NodeType == HtmlNodeType.Text &&
+                    i.ParentNode.Name != "script" &&
+                    i.ParentNode.Name != "style" &&
+                    !string.IsNullOrEmpty(i.InnerText.Trim())
+                ).Select(i => i.InnerText);
+
+            return string.Join(" ", phrases);
         }
 
         private void AnalyzeSearchContent(SearchContent searchContent, Dictionary<string, string> siteSettings)
@@ -180,14 +210,15 @@ namespace Oqtane.Providers
 
         private static Dictionary<string, int> GetWords(string content, string[] ignoreWords, int minimumWordLength)
         {
-            content = FormatText(content);
+            content = FormatContent(content);
 
             var words = new Dictionary<string, int>();
 
             if (!string.IsNullOrEmpty(content))
             {
-                foreach (var word in content.Split(' '))
+                foreach (var term in content.Split(' '))
                 {
+                    var word = term.ToLower().Trim();
                     if (word.Length >= minimumWordLength && !ignoreWords.Contains(word))
                     {
                         if (!words.ContainsKey(word))
@@ -205,46 +236,14 @@ namespace Oqtane.Providers
             return words;
         }
 
-        private static string FormatText(string text)
+        private static string FormatContent(string text)
         {
             text = HtmlEntity.DeEntitize(text);
-            foreach (var punctuation in ".?!,;:-_()[]{}'\"/\\".ToCharArray())
+            foreach (var punctuation in ".?!,;:_()[]{}'\"/\\".ToCharArray())
             {
                 text = text.Replace(punctuation, ' ');
             }
-            text = text.Replace("  ", " ").ToLower().Trim();
-
             return text;
-        }
-
-        private void CleanSearchContent(SearchContent searchContent)
-        {
-            searchContent.Title = GetCleanContent(searchContent.Title);
-            searchContent.Description = GetCleanContent(searchContent.Description);
-            searchContent.Body = GetCleanContent(searchContent.Body);
-            searchContent.AdditionalContent = GetCleanContent(searchContent.AdditionalContent);
-        }
-
-        private string GetCleanContent(string content)
-        {
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                return string.Empty;
-            }
-
-            content = WebUtility.HtmlDecode(content);
-
-            var page = new HtmlDocument();
-            page.LoadHtml(content);
-
-            var phrases = page.DocumentNode.Descendants().Where(i =>
-                    i.NodeType == HtmlNodeType.Text &&
-                    i.ParentNode.Name != "script" &&
-                    i.ParentNode.Name != "style" &&
-                    !string.IsNullOrEmpty(i.InnerText.Trim())
-                ).Select(i => i.InnerText);
-
-            return string.Join(" ", phrases);
         }
 
         public Task ResetIndex()

@@ -13,7 +13,7 @@ namespace Oqtane.Services
 {
     public class SearchService : ISearchService
     {
-        private const string SearchProviderSettingName = "SearchProvider";
+        private const string SearchProviderSettingName = "Search_SearchProvider";
 
         private readonly IServiceProvider _serviceProvider;
         private readonly ISettingRepository _settingRepository;
@@ -45,14 +45,14 @@ namespace Oqtane.Services
                 .DistinctBy(i => i.Url);
 
             // sort results
-            if (searchQuery.SortDirection == SearchSortDirections.Descending)
+            if (searchQuery.SortOrder == SearchSortOrder.Descending)
             {
                 switch (searchQuery.SortField)
                 {
-                    case SearchSortFields.Relevance:
+                    case SearchSortField.Relevance:
                         results = results.OrderByDescending(i => i.Score).ThenByDescending(i => i.ContentModifiedOn);
                         break;
-                    case SearchSortFields.Title:
+                    case SearchSortField.Title:
                         results = results.OrderByDescending(i => i.Title).ThenByDescending(i => i.ContentModifiedOn);
                         break;
                     default:
@@ -64,10 +64,10 @@ namespace Oqtane.Services
             {
                 switch (searchQuery.SortField)
                 {
-                    case SearchSortFields.Relevance:
+                    case SearchSortField.Relevance:
                         results = results.OrderBy(i => i.Score).ThenByDescending(i => i.ContentModifiedOn);
                         break;
-                    case SearchSortFields.Title:
+                    case SearchSortField.Title:
                         results = results.OrderBy(i => i.Title).ThenByDescending(i => i.ContentModifiedOn);
                         break;
                     default:
@@ -90,12 +90,23 @@ namespace Oqtane.Services
             var visible = true;
             foreach (var permission in searchContent.Permissions.Split(','))
             {
-                var entityName = permission.Split(":")[0];
-                var entityId = int.Parse(permission.Split(":")[1]);
-                if (!_userPermissions.IsAuthorized(_accessor.HttpContext.User, searchQuery.SiteId, entityName, entityId, PermissionNames.View))
+                if (permission.Contains(":")) // permission
                 {
-                    visible = false;
-                    break;
+                    var entityName = permission.Split(":")[0];
+                    var entityId = int.Parse(permission.Split(":")[1]);
+                    if (!_userPermissions.IsAuthorized(_accessor.HttpContext.User, searchQuery.SiteId, entityName, entityId, PermissionNames.View))
+                    {
+                        visible = false;
+                        break;
+                    }
+                }
+                else // role name
+                {
+                    if (!_accessor.HttpContext.User.IsInRole(permission))
+                    {
+                        visible = false;
+                        break;
+                    }
                 }
             }
             return visible;

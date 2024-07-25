@@ -14,7 +14,7 @@
 </div>
 
 @code {
-    private string _textEditorProvider;
+    private string _textEditorType;
     private RenderFragment _textEditorComponent;
     private ITextEditor _textEditor;
 
@@ -33,9 +33,9 @@
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        _textEditorProvider = await GetTextEditorType();
+        _textEditorType = GetTextEditorType();
     }
 
     protected override void OnParametersSet()
@@ -63,9 +63,9 @@
 
     private void CreateTextEditor(RenderTreeBuilder builder)
     {
-        if(!string.IsNullOrEmpty(_textEditorProvider))
+        if(!string.IsNullOrEmpty(_textEditorType))
         {
-            var editorType = Type.GetType(_textEditorProvider);
+            var editorType = Type.GetType(_textEditorType);
             if (editorType != null)
             {
                 builder.OpenComponent(0, editorType);
@@ -109,20 +109,19 @@
         }
     }
 
-    private async Task<string> GetTextEditorType()
+    private string GetTextEditorType()
     {
-        const string EditorSettingName = "TextEditorProvider";
+        const string EditorSettingName = "TextEditor";
 
         if(!string.IsNullOrEmpty(Provider))
         {
-            var provider = ServiceProvider.GetServices<ITextEditorProvider>().FirstOrDefault(i => i.Name.Equals(Provider, StringComparison.OrdinalIgnoreCase));
+            var provider = ServiceProvider.GetServices<ITextEditor>().FirstOrDefault(i => i.Name.Equals(Provider, StringComparison.OrdinalIgnoreCase));
             if(provider != null)
             {
-                return provider.EditorType;
+                return Utilities.GetFullTypeName(provider.GetType().AssemblyQualifiedName);
             }
         }
 
-        var settings = await SettingService.GetSiteSettingsAsync(PageState.Site.SiteId);
-        return SettingService.GetSetting(settings, EditorSettingName, Constants.DefaultTextEditorProvider);
+        return SettingService.GetSetting(PageState.Site.Settings, EditorSettingName, Constants.DefaultTextEditor);
     }
 }

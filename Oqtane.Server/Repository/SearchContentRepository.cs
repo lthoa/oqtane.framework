@@ -26,19 +26,24 @@ namespace Oqtane.Repository
                 .ThenInclude(w => w.SearchWord)
                 .Where(i => i.SiteId == searchQuery.SiteId);
 
-            if (searchQuery.EntityNames != null && searchQuery.EntityNames.Any())
+            if (!string.IsNullOrEmpty(searchQuery.IncludeEntities))
             {
-                searchContents = searchContents.Where(i => searchQuery.EntityNames.Contains(i.EntityName));
+                searchContents = searchContents.Where(i => searchQuery.IncludeEntities.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(i.EntityName));
             }
 
-            if (searchQuery.From != DateTime.MinValue)
+            if (!string.IsNullOrEmpty(searchQuery.ExcludeEntities))
             {
-                searchContents = searchContents.Where(i => i.ContentModifiedOn >= searchQuery.From);
+                searchContents = searchContents.Where(i => !searchQuery.ExcludeEntities.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(i.EntityName));
             }
 
-            if (searchQuery.To != DateTime.MinValue)
+            if (searchQuery.FromDate != DateTime.MinValue)
             {
-                searchContents = searchContents.Where(i => i.ContentModifiedOn <= searchQuery.To);
+                searchContents = searchContents.Where(i => i.ContentModifiedOn >= searchQuery.FromDate);
+            }
+
+            if (searchQuery.ToDate != DateTime.MaxValue)
+            {
+                searchContents = searchContents.Where(i => i.ContentModifiedOn <= searchQuery.ToDate);
             }
 
             if (searchQuery.Properties != null && searchQuery.Properties.Any())
