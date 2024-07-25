@@ -20,8 +20,8 @@ Oqtane.RichTextEditor = {
                 blotFormatter: {},
                 imagenote: {
                     srcstartwidth: "/api/file/image/",
-                    containerid: "img_note_edit",
-                    hddenid: "selected_fileid"
+                    filehddenid: "image_fileid",
+                    notehiddenid:"image_note"
                 }
             },
             placeholder: placeholder,
