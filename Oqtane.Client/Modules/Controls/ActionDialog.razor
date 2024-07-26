@@ -181,6 +181,7 @@ else
             _editmode = bool.Parse(EditMode);
         }
 
+        _openText = Text;
         if (!string.IsNullOrEmpty(IconName))
         {
             if (IconOnly)
@@ -202,8 +203,7 @@ else
         Text = Localize(nameof(Text), Text);
         Header = Localize(nameof(Header), Header);
         Message = Localize(nameof(Message), Message);
-
-        _openText = Text;
+                
         _permissions = (PermissionList == null) ? ModuleState.PermissionList : PermissionList;
         _authorized = IsAuthorized();
 
