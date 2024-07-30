@@ -58,8 +58,9 @@ class ImageNote {
                 
                 var btn = document.createElement("a");
                 btn.classList.add("btn");
-                btn.classList.add("btn-active-light-primary");                
-                btn.addEventListener("click", this.go);
+                btn.classList.add("btn-active-light-primary");
+                btn.classList.add("shadow-sm");
+                btn.addEventListener("click", this.openModal);
                 btn.innerHTML = "Edit";
                                 
                 div.appendChild(this.editor);
@@ -74,15 +75,16 @@ class ImageNote {
 
     };
 
-    go = () => {
-        this.fileid.dispatchEvent(new Event('change'));        
+    hide = () => {
+        this.img = undefined;
+    };
+
+    openModal = () => {
+        this.fileid.dispatchEvent(new Event('change'));
     };
     setNote = () => {
         this.img.alt = CS.quill.imgnote;
         this.editor.innerHTML = this.img.alt;
-    };
-    hide = () => {
-        this.img = undefined;
     };
 }
 
